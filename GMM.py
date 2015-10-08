@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from utils import compute_pdf
 
 
-group_a = np.random.normal(loc=(20.00, 14.00), scale=(4.0, 4.0), size=(500, 2))
-group_b = np.random.normal(loc=(15.00, 8.00), scale=(2.0, 2.0), size=(500, 2))
+group_a = np.random.normal(loc=(20.00, 14.00), scale=(4.0, 4.0), size=(1000, 2))
+group_b = np.random.normal(loc=(15.00, 8.00), scale=(2.0, 2.0), size=(1000, 2))
 
 # plt.plot(group_a[:, 0], group_a[:, 1], 'ro')
 # plt.plot(group_b[:, 0], group_b[:, 1], 'bo')
@@ -19,8 +19,8 @@ std_ext = np.std(data, axis=0)
 # plt.plot(mean_ext[0], mean_ext[1], 'bo')
 
 distr = []
-distr.append({'weight': 0.5, 'mean': (0, 0), 'var': (0, 0), 'xi': 0, 'lam': 1, 'sig': 0, 'ni': 0})
-distr.append({'weight': 0.5, 'mean': (0, 0), 'var': (0, 0), 'xi': 0, 'lam': 1, 'sig': 0, 'ni': 0})
+distr.append({'weight': 0.5, 'mean': (0, 0), 'var': (0, 0), 'xi': 0, 'lam': 1, 'sig': 0, 'ni': 0, 'wpdf': [], 'gammas': 0})
+distr.append({'weight': 0.5, 'mean': (0, 0), 'var': (0, 0), 'xi': 0, 'lam': 1, 'sig': 0, 'ni': 0, 'wpdf': [], 'gammas': 0})
 
 # split centroid
 distr[0]['mean'] = mean_ext + np.multiply(std_ext, 0.1)
@@ -47,65 +47,41 @@ eval_train = []
 for iter in range(20):
     print iter
 
-    gamma_denoms = []
+    for d in distr:
+        d['wpdf'] = []
     for x in data:
-        gamma_denom = 0
         for d in distr:
-            gamma_denom += np.multiply(d['weight'], compute_pdf(x, d['mean'], d['var']))
-        gamma_denoms.append(gamma_denom)
+            d['wpdf'].append(np.multiply(d['weight'], compute_pdf(x, d['mean'], d['var'])))
+
+    gamma_denoms = np.zeros(len(data))
+    for d in distr:
+        gamma_denoms += d['wpdf']
     sum_lik = sum(np.log(gamma_denoms))
     eval_train.append(sum_lik)
 
-    gammas = []
-    for x, i in zip(data, range(len(data))):
-        num = np.multiply(distr[0]['weight'], compute_pdf(x, distr[0]['mean'], distr[0]['var']))
-        gamma = np.divide(num, gamma_denoms[i])
-        gammas.append(gamma)
-    distr[0]['xi'] = sum(gammas)
-    mi_xk = np.dot(gammas, data)
-    mi_xk = np.divide(mi_xk, distr[0]['xi'])
-    new_mean_1 = mi_xk
-    sigma_xk = 0
-    for i in range(len(data)):
-        sigma_xk += np.multiply(gammas[i], np.dot(np.transpose(np.matrix(data[i]-mi_xk)), np.matrix(data[i]-mi_xk)))
-    sigma_xk = np.divide(sigma_xk, distr[0]['xi'])
-    new_var_1 = sigma_xk
+    for d in distr:
+        d['gammas'] = np.divide(d['wpdf'], gamma_denoms)
 
-    gammas = []
-    for x, i in zip(data, range(len(data))):
-        num = np.multiply(distr[1]['weight'], compute_pdf(x, distr[1]['mean'], distr[1]['var']))
-        gamma = np.divide(num, gamma_denoms[i])
-        gammas.append(gamma)
-    distr[1]['xi'] = sum(gammas)
-    mi_xk = np.dot(gammas, data)
-    mi_xk = np.divide(mi_xk, distr[1]['xi'])
-    new_mean_2 = mi_xk
-    sigma_xk = 0
-    for i in range(len(data)):
-        sigma_xk += np.multiply(gammas[i], np.dot(np.transpose(np.matrix(data[i]-mi_xk)), np.matrix(data[i]-mi_xk)))
-    sigma_xk = np.divide(sigma_xk, distr[1]['xi'])
-    new_var_2 = sigma_xk
+    for d, i in zip(distr, range(len(distr))):
+        d['xi'] = sum(d['gammas'])
+        mi_xk = np.dot(d['gammas'], data)
+        mi_xk = np.divide(mi_xk, d['xi'])
+        sigma_xk = np.dot(np.dot(np.transpose(data-mi_xk), np.diag(d['gammas'])), (data-mi_xk))
+        sigma_xk = np.divide(sigma_xk, d['xi'])
+        d['mean'] = mi_xk
+        d['var'] = sigma_xk
 
     denom_weight = 0
     for d in distr:
         denom_weight += d['xi']
-
-    new_weight_1 = np.divide((distr[0]['xi']), denom_weight)
-    new_weight_2 = np.divide((distr[1]['xi']), denom_weight)
-
-    distr[0]['mean'] = new_mean_1
-    distr[0]['var'] = new_var_1
-    distr[0]['weight'] = new_weight_1
-    distr[1]['mean'] = new_mean_2
-    distr[1]['var'] = new_var_2
-    distr[1]['weight'] = new_weight_2
-    print new_weight_1, new_weight_2
+    for d in distr:
+        d['weight'] = np.divide(d['xi'], denom_weight)
 
 
 print distr[0]['mean']
-print np.sqrt(distr[0]['var'])
+print distr[0]['var']
 print distr[1]['mean']
-print np.sqrt(distr[1]['var'])
+print distr[1]['var']
 
 plt.plot(eval_train)
 plt.show()
