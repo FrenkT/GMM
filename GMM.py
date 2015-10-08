@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils import compute_pdf
+from utils import compute_vectorized_pdf
 
 
 group_a = np.random.normal(loc=(20.00, 14.00), scale=(4.0, 4.0), size=(1000, 2))
@@ -27,8 +28,8 @@ distr[0]['mean'] = mean_ext + np.multiply(std_ext, 0.1)
 distr[1]['mean'] = mean_ext - np.multiply(std_ext, 0.1)
 # distr[0]['var'] = (4.0, 4.0)
 # distr[1]['var'] = (2.0, 2.0)
-distr[0]['var'] = np.eye(2)*(std_ext**2)
-distr[1]['var'] = np.eye(2)*(std_ext**2)
+distr[0]['var'] = np.dot(np.transpose(data-mean_ext), (data-mean_ext))/len(data)
+distr[1]['var'] = np.dot(np.transpose(data-mean_ext), (data-mean_ext))/len(data)
 distr[0]['ni'] = distr[0]['weight'] * len(data)
 distr[1]['ni'] = distr[1]['weight'] * len(data)
 # plt.plot(distr[0]['mean'][0], distr[0]['mean'][1], 'go')
@@ -44,14 +45,11 @@ print distr[1]['mean']
 print distr[1]['var']
 eval_train = []
 
-for iter in range(20):
+for iter in range(15):
     print iter
 
     for d in distr:
-        d['wpdf'] = []
-    for x in data:
-        for d in distr:
-            d['wpdf'].append(np.multiply(d['weight'], compute_pdf(x, d['mean'], d['var'])))
+        d['wpdf'] = np.multiply(d['weight'], compute_vectorized_pdf(data, d['mean'], d['var']))
 
     gamma_denoms = np.zeros(len(data))
     for d in distr:

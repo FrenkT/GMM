@@ -54,3 +54,10 @@ def compute_pdf(x, m, cov):
     if np.shape(log_p_x_c) == (1, 1):
         return np.exp(log_p_x_c[0, 0])
     return np.exp(log_p_x_c)
+
+
+def compute_vectorized_pdf(x, m, cov):
+    prec = np.linalg.inv(cov)
+    sign, logdet = np.linalg.slogdet(prec)
+    log_p_x_c = np.divide(logdet, 2.) - np.divide(np.sum(np.multiply(np.dot((x - m), prec), (x-m)), axis=1), 2.) - np.log(2*np.pi)
+    return np.exp(log_p_x_c)
