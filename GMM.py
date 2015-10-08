@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats
+
+from utils import compute_pdf
 
 
 group_a = np.random.normal(loc=(20.00, 14.00), scale=(4.0, 4.0), size=(500, 2))
@@ -26,8 +27,8 @@ distr[0]['mean'] = mean_ext + np.multiply(std_ext, 0.1)
 distr[1]['mean'] = mean_ext - np.multiply(std_ext, 0.1)
 # distr[0]['var'] = (4.0, 4.0)
 # distr[1]['var'] = (2.0, 2.0)
-distr[0]['var'] = std_ext**2
-distr[1]['var'] = std_ext**2
+distr[0]['var'] = np.eye(2)*(std_ext**2)
+distr[1]['var'] = np.eye(2)*(std_ext**2)
 distr[0]['ni'] = distr[0]['weight'] * len(data)
 distr[1]['ni'] = distr[1]['weight'] * len(data)
 # plt.plot(distr[0]['mean'][0], distr[0]['mean'][1], 'go')
@@ -50,40 +51,40 @@ for iter in range(20):
     for x in data:
         gamma_denom = 0
         for d in distr:
-            gamma_denom += np.multiply(d['weight'], np.prod(scipy.stats.norm(d['mean'], np.sqrt(d['var'])).pdf(x)))
+            gamma_denom += np.multiply(d['weight'], compute_pdf(x, d['mean'], d['var']))
         gamma_denoms.append(gamma_denom)
     sum_lik = sum(np.log(gamma_denoms))
     eval_train.append(sum_lik)
 
     gammas = []
     for x, i in zip(data, range(len(data))):
-        num = np.multiply(distr[0]['weight'], np.prod(scipy.stats.norm(distr[0]['mean'], np.sqrt(distr[0]['var'])).pdf(x)))
+        num = np.multiply(distr[0]['weight'], compute_pdf(x, distr[0]['mean'], distr[0]['var']))
         gamma = np.divide(num, gamma_denoms[i])
         gammas.append(gamma)
     distr[0]['xi'] = sum(gammas)
     mi_xk = np.dot(gammas, data)
     mi_xk = np.divide(mi_xk, distr[0]['xi'])
-    new_mean_1 = np.multiply((1-distr[0]['lam']), distr[0]['mean']) + np.multiply(distr[0]['lam'], mi_xk)
+    new_mean_1 = mi_xk
     sigma_xk = 0
     for i in range(len(data)):
-        sigma_xk += np.multiply(gammas[i], np.multiply((data[i]-mi_xk), (data[i]-mi_xk)))
+        sigma_xk += np.multiply(gammas[i], np.dot(np.transpose(np.matrix(data[i]-mi_xk)), np.matrix(data[i]-mi_xk)))
     sigma_xk = np.divide(sigma_xk, distr[0]['xi'])
-    new_var_1 = np.multiply(distr[0]['lam'], sigma_xk)
+    new_var_1 = sigma_xk
 
     gammas = []
     for x, i in zip(data, range(len(data))):
-        num = np.multiply(distr[1]['weight'], np.prod(scipy.stats.norm(distr[1]['mean'], np.sqrt(distr[1]['var'])).pdf(x)))
+        num = np.multiply(distr[1]['weight'], compute_pdf(x, distr[1]['mean'], distr[1]['var']))
         gamma = np.divide(num, gamma_denoms[i])
         gammas.append(gamma)
     distr[1]['xi'] = sum(gammas)
     mi_xk = np.dot(gammas, data)
     mi_xk = np.divide(mi_xk, distr[1]['xi'])
-    new_mean_2 = np.multiply((1-distr[1]['lam']), distr[1]['mean']) + np.multiply(distr[1]['lam'], mi_xk)
+    new_mean_2 = mi_xk
     sigma_xk = 0
     for i in range(len(data)):
-        sigma_xk += np.multiply(gammas[i], np.multiply((data[i]-mi_xk), (data[i]-mi_xk)))
+        sigma_xk += np.multiply(gammas[i], np.dot(np.transpose(np.matrix(data[i]-mi_xk)), np.matrix(data[i]-mi_xk)))
     sigma_xk = np.divide(sigma_xk, distr[1]['xi'])
-    new_var_2 = np.multiply(distr[1]['lam'], sigma_xk)
+    new_var_2 = sigma_xk
 
     denom_weight = 0
     for d in distr:

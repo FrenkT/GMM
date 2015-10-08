@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+
 
 def plot_cov_ellipse(cov, pos, volume=.5, ax=None, fc='none', ec=[0,0,0], a=1, lw=2):
     """
@@ -43,10 +43,14 @@ def plot_cov_ellipse(cov, pos, volume=.5, ax=None, fc='none', ec=[0,0,0], a=1, l
     plt.show()
 
 
-def compute_weighted_pdf(x, m, cov, w):
+class gaussian_distr():
+    pass
+
+
+def compute_pdf(x, m, cov):
     prec = np.linalg.inv(cov)
     sign, logdet = np.linalg.slogdet(prec)
-    log_p_x_c = logdet/2. - np.dot(np.dot((x - m), prec), (x - m))/2.
-    log_w = np.log(w)
-    log_p_x = scipy.misc.logsumexp(np.array([log_p_x_c, log_w]))
-    return log_p_x
+    log_p_x_c = np.divide(logdet, 2.) - np.divide(np.dot(np.dot((x - m), prec), (x - m)), 2.) - np.log(2*np.pi)
+    if np.shape(log_p_x_c) == (1, 1):
+        return np.exp(log_p_x_c[0, 0])
+    return np.exp(log_p_x_c)
