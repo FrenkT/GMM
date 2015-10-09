@@ -62,8 +62,9 @@ class GMM:
         for train_iter in xrange(self.max_iter):
             if train_iter == 0:
                 eval_train = []
-            elif train_iter > 1 and eval_train[len(eval_train)-1] - eval_train[len(eval_train)-2] < self.train_thres:
+            elif train_iter > 1 and len(eval_train) > 2 and eval_train[len(eval_train)-1] - eval_train[len(eval_train)-2] < self.train_thres:
                 if len(self.components) < self.n_components:
+                    print '*** split components ***'
                     self._split_components()
                     eval_train = []
                 else:
@@ -97,3 +98,5 @@ class GMM:
                 c.weight = np.divide(c.xi, denom_weight)
 
             print train_iter
+
+        return eval_train
